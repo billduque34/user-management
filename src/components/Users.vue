@@ -45,11 +45,11 @@ export default Vue.extend({
     }
   },
   methods: {
-    userClick(user: Form) {
+    userClick(user: Form): void {
       //the chosen user from users list will be stored to the state.selectedUser to fill the form
       this.$store.commit('setSelectedUser', user);
     },
-    addUser() {
+    addUser(): void {
       //a callback function will run which has a 'addUserClicked' event name from Form.vue
       bus.$emit('addUserClicked');
     }

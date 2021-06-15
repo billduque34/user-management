@@ -1,4 +1,4 @@
-<template>
+h<template>
   <div class="Form">
     <div class="form-header">
       <h2 v-if="!userForm.id">Add User</h2>
@@ -98,7 +98,7 @@ export default Vue.extend({
   //if the value of store.state.selectedUser changes, handler function will run
   watch: {
     "$store.state.selectedUser": {
-      handler() {
+      handler(): void {
         const selectedUser = this.$store.state.selectedUser;
         this.userForm = {...selectedUser};
         this.userForm.user_roles = [...selectedUser.user_roles];
@@ -116,11 +116,11 @@ export default Vue.extend({
     }
   },
   methods: {
-    removeRole({target}: any) {
+    removeRole({target}: any): void {
       const index = this.userForm.user_roles.findIndex(ele => ele.role.name === target.innerHTML);
       this.userForm.user_roles.splice(index, 1);
     },
-    selectMultipleRole({target}: any) {
+    selectMultipleRole({target}: any): void {
       const role = target.value;
       //checks if a chosen role exist in the user's array of roles
       const isRoleExist = this.userForm.user_roles.find(ele => ele.role.name === role);
@@ -147,7 +147,7 @@ export default Vue.extend({
 
       this.userForm.user_roles.push(roleObj);
     },
-    addUser(user: Form) {
+    addUser(user: Form): void {
       this.isEmailExist = false;
       this.invalidEmail = false;
       this.hasEmptyField = false;
@@ -211,11 +211,11 @@ export default Vue.extend({
       this.hasEmptyField = false;
     },
 
-    deleteUser(user: Form) {
+    deleteUser(user: Form): void {
       this.deleteUserFromDB(user);
       this.resetForm();
     },
-    resetForm() {
+    resetForm(): void {
       const form: any = document.querySelector('form');
       form.reset();
       userForm.user_roles = [];
@@ -282,7 +282,7 @@ export default Vue.extend({
         this.$store.commit('addUser', user);
       }
     },
-    async updateUserData(user: Form) {
+    async updateUserData(user: Form): Promise<void> {
       await this.$apollo.mutate({
         mutation: gql`mutation updateUser ($email: String!,
                                            $firstname: String!,
@@ -319,7 +319,7 @@ export default Vue.extend({
       await this.deleteRole(user);
       this.$store.commit('updateUser', user);
     },
-    async addRole(user) {
+    async addRole(user): Promise<void> {
       const prevRole = this.$store.state.selectedUser.user_roles;
       const currentRole = user.user_roles;
 
@@ -351,7 +351,7 @@ export default Vue.extend({
         }
       }
     },
-    async deleteRole(user) {
+    async deleteRole(user): Promise<void> {
       const prevRole = this.$store.state.selectedUser.user_roles;
       const currentRole = user.user_roles;
 
@@ -383,7 +383,7 @@ export default Vue.extend({
         }
       }
     },
-    async deleteUserFromDB(user) {
+    async deleteUserFromDB(user): Promise<void> {
       const roles = user.user_roles;
 
       //deleting all of the roles first in the user_role table using the selected user_id to avoid error from the db
@@ -423,7 +423,7 @@ export default Vue.extend({
   },
   created() {
     //linked to the addUser() event handler from User.vue
-    bus.$on('addUserClicked', () => {
+    bus.$on('addUserClicked', (): void => {
       this.resetForm();
     });
   }

@@ -99,7 +99,7 @@ export default Vue.extend({
   watch: {
     "$store.state.selectedUser": {
       handler(): void {
-        const selectedUser = this.$store.state.selectedUser;
+        const selectedUser: Form = this.$store.state.selectedUser;
         this.userForm = {...selectedUser};
         this.userForm.user_roles = [...selectedUser.user_roles];
       }
@@ -117,14 +117,14 @@ export default Vue.extend({
   },
   methods: {
     removeRole({target}: any): void {
-      const index = this.userForm.user_roles.findIndex(ele => ele.role.name === target.innerHTML);
+      const index: number = this.userForm.user_roles.findIndex(ele => ele.role.name === target.innerHTML);
       this.userForm.user_roles.splice(index, 1);
     },
     selectMultipleRole({target}: any): void {
-      const role = target.value;
+      const role: string = target.value;
       //checks if a chosen role exist in the user's array of roles
-      const isRoleExist = this.userForm.user_roles.find(ele => ele.role.name === role);
-      let roleObj;
+      const isRoleExist: number = this.userForm.user_roles.find(ele => ele.role.name === role);
+      let roleObj: Role;
 
       //end the function if it exists
       if (isRoleExist) {
@@ -352,8 +352,8 @@ export default Vue.extend({
       }
     },
     async deleteRole(user): Promise<void> {
-      const prevRole = this.$store.state.selectedUser.user_roles;
-      const currentRole = user.user_roles;
+      const prevRole: Array<Role> = this.$store.state.selectedUser.user_roles;
+      const currentRole: Array<Role> = user.user_roles;
 
       //remove the role that exist in prevRole but not in currentRole by comparing
       for (let i = 0; i <= prevRole.length - 1; i++) {
@@ -384,7 +384,7 @@ export default Vue.extend({
       }
     },
     async deleteUserFromDB(user): Promise<void> {
-      const roles = user.user_roles;
+      const roles: Array<Role> = user.user_roles;
 
       //deleting all of the roles first in the user_role table using the selected user_id to avoid error from the db
       for (let i = 0; i <= roles.length - 1; i++) {

@@ -10,6 +10,8 @@
     </div>
     <div class="warnings">
       <p v-if="userForm.hasOwnProperty('id') && !userForm.active" class="warning">The user is inactive!</p>
+      <p v-if="invalidEmail" class="warning">Invalid Email!</p>
+      <p v-if="hasEmptyField" class="warning">Fill all the fields except the Middle Name field(optional)</p>
       <p v-if="isEmailExist" class="warning">Email already exist!</p>
     </div>
     <form>
@@ -47,6 +49,7 @@
             <option value="Teacher">Teacher</option>
           </select>
           <ul>
+<!--            List of Roles of the created user or the selected user-->
             <li v-for="oneRole in roles" v-bind:key="oneRole.role.id" @click="removeRole">{{ oneRole.role.name }}</li>
           </ul>
         </div>
@@ -65,6 +68,7 @@
 <script>
 import { bus } from '../main';
 import gql from "graphql-tag";
+import { capitalize } from '../utils/utils';
 
 const userForm = {
   lastname: '',
@@ -83,19 +87,23 @@ export default {
     return {
       userForm: {...userForm},
       isEmailExist: false,
+      invalidEmail: false,
+      hasEmptyField: false
     }
   },
+
+  //if the value of store.state.selectedUser changes, handler function will run
   watch: {
     "$store.state.selectedUser": {
       handler() {
         const selectedUser = this.$store.state.selectedUser;
         this.userForm = {...selectedUser};
         this.userForm.user_roles = [...selectedUser.user_roles];
-        console.log(`Handler: ${this.userForm.user_roles === selectedUser.user_roles}`);
-        console.log('handling>>>')
       }
     }
   },
+
+  //rerenders when users and roles change value
   computed: {
     users() {
       return this.$store.state.users;
@@ -106,16 +114,16 @@ export default {
   },
   methods: {
     removeRole({target}) {
-      console.log(target.value);
       const index = this.userForm.user_roles.findIndex(ele => ele.role.name === target.innerHTML);
-      console.log(index);
       this.userForm.user_roles.splice(index, 1);
-      console.log(userForm.user_roles);
     },
     selectMultipleRole({target}) {
       const role = target.value;
+      //checks if a chosen role exist in the user's array of roles
       const isRoleExist = this.userForm.user_roles.find(ele => ele.role.name === role);
       let roleObj;
+
+      //end the function if it exists
       if (isRoleExist) {
         return;
       }
@@ -133,36 +141,70 @@ export default {
         default:
           roleObj = {role: {name: role, id: 4}};
       }
+
       this.userForm.user_roles.push(roleObj);
     },
     addUser(user) {
+      this.isEmailExist = false;
+      this.invalidEmail = false;
+      this.hasEmptyField = false;
+      //if the id exist, it will instead update the user information
       if ('id' in user) {
         this.updateUserData(user);
-        // this.$store.commit('updateUser', user);
         return;
       }
+
       const users = this.$store.state.users;
+
+      //checks if all the property(except middlename) is truthy
       for (let prop in user) {
+        const regex = new RegExp(/.*@.*\..*(\..*)?/);
+        //it makes the middlename optional
         if(prop === 'middlename') {
+          user[prop] = capitalize(user[prop]);
           continue;
         }
+
+        //checks if value of every property are not an empty string
         if (user[prop] === "") {
+          this.hasEmptyField = true;
           return;
         }
+
+        //checks if email has the right format
+        if(prop === 'email') {
+          if(!regex.test(user[prop])) {
+            this.invalidEmail = true;
+            return;
+          }
+        }
+
+        //to skip the capitalization if property is an email key or the type of the value of a key is an object or boolean
+        if(prop === 'email' || typeof user[prop] === 'object' || typeof user[prop] === 'boolean') {
+          continue;
+        }
+
+        //Trim the whitespace and capitalize the first letter
+        user[prop] = capitalize(user[prop]);
       }
+
+      //checks if there is a duplicate email
       const isDuplicateEmail = users.find(userElement => userElement.email === user.email);
       if (isDuplicateEmail) {
         this.isEmailExist = true;
         return;
       }
+
+      //add the newly created user info to the db
       this.addUserToDB(user);
       this.resetForm();
       this.isEmailExist = false;
+      this.invalidEmail = false;
+      this.hasEmptyField = false;
     },
+
     deleteUser(user) {
-      console.log(user);
       this.deleteUserFromDB(user);
-      // this.$store.commit('deleteUser', user.id);
       this.resetForm();
     },
     resetForm() {
@@ -170,9 +212,9 @@ export default {
       form.reset();
       userForm.user_roles = [];
       this.userForm = {...userForm};
-      console.log(this.userForm.user_roles);
     },
     async addUserToDB(user) {
+      //add the user info to the user table and returns an ID
       const userId = await this.$apollo.mutate({
         mutation: gql`mutation addUser($email: String!,
                                        $firstname: String!,
@@ -206,7 +248,7 @@ export default {
           nickname: user.nickname
         }
       });
-      console.log(userId.data.insert_user.returning[0].id);
+      //if an id exists, it will add all the roles to the user_role table
       if (userId) {
         await Promise.all(user.user_roles.map(role => {
           this.$apollo.mutate({
@@ -225,8 +267,9 @@ export default {
             }
           });
         }));
+
+        //adds a property 'id' to the user passed in the parameter
         user.id = userId.data.insert_user.returning[0].id;
-        console.log(`${user.id} === ${userId.data.insert_user.returning[0].id}`);
         this.$store.commit('addUser', user);
       }
     },
@@ -263,7 +306,6 @@ export default {
           id: user.id
         }
       });
-      console.log('Adding...');
       await this.addRole(user);
       await this.deleteRole(user);
       this.$store.commit('updateUser', user);
@@ -271,18 +313,16 @@ export default {
     async addRole(user) {
       const prevRole = this.$store.state.selectedUser.user_roles;
       const currentRole = user.user_roles;
+
+      //add the role that exist in currentRole but not in prevRole by comparing
       for (let i = 0; i <= currentRole.length - 1; i++) {
-        console.log(currentRole);
-        console.log('Looping...');
         for (let j = 0; j <= prevRole.length - 1; j++) {
-          console.log(`i-${i} :j-:${j} : prev-${prevRole.length - 1}`);
           if (currentRole[i].role.id === prevRole[j].role.id) {
-            console.log(`${currentRole[i].role.name} = ${prevRole[j].role.name}`);
-            console.log('Breaking...');
             break;
           }
+
+          //if it is done comparing the element(role) in the outer loop, it means there is match which will be inserted to the database
           if (j === prevRole.length - 1) {
-            console.log(currentRole[i].role.name);
             await this.$apollo.mutate({
               mutation: gql`mutation addRole ($role_id: Int!,
                                    $user_id: Int!) {
@@ -301,20 +341,19 @@ export default {
           }
         }
       }
-      console.log('Done...');
     },
     async deleteRole(user) {
       const prevRole = this.$store.state.selectedUser.user_roles;
       const currentRole = user.user_roles;
+
+      //remove the role that exist in prevRole but not in currentRole by comparing
       for (let i = 0; i <= prevRole.length - 1; i++) {
-        console.log(currentRole);
-        console.log('Looping...');
         for (let j = 0; j <= currentRole.length - 1; j++) {
-          console.log(`i-${i} :j-:${j} : prev-${prevRole.length - 1}`);
           if (prevRole[i].role.id === currentRole[j].role.id) {
-            console.log('Breaking...');
             break;
           }
+
+          //if no matching role at the end of the iteration of the inner loop, it will be deleted to the db
           if (j === currentRole.length - 1) {
             await this.$apollo.mutate({
               mutation: gql`mutation deleteRole ($role_id: Int!,
@@ -337,6 +376,8 @@ export default {
     },
     async deleteUserFromDB(user) {
       const roles = user.user_roles;
+
+      //deleting all of the roles first in the user_role table using the selected user_id to avoid error from the db
       for (let i = 0; i <= roles.length - 1; i++) {
         await this.$apollo.mutate({
           mutation: gql`mutation deleteRole ($role_id: Int!,
@@ -354,6 +395,8 @@ export default {
           }
         });
       }
+
+      //deleting the row from user table using the selected user_id
       await this.$apollo.mutate({
         mutation: gql`mutation deleteRole ($id: Int!) {
             delete_user(where: {
@@ -370,8 +413,8 @@ export default {
     }
   },
   created() {
+    //linked to the addUser() event handler from User.vue
     bus.$on('addUserClicked', () => {
-      console.log('Event Emitted!');
       this.resetForm();
     });
   }
@@ -401,6 +444,20 @@ export default {
   margin-left: 10px;
   padding: 10px 15px;
   font-size: 15px;
+  border-radius: 7px;
+  font-weight: bold;
+}
+
+.add-and-delete button:first-child {
+  background-color: #019c01;
+  color: white;
+  border: 3px solid darkgreen;
+}
+
+.add-and-delete button:last-child {
+  background-color: #bf0000;
+  color: white;
+  border: 3px solid #4e0101;
 }
 
 form {
@@ -469,7 +526,7 @@ li {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: #d70404;
   -webkit-transition: .4s;
   transition: .4s;
 }
@@ -487,7 +544,7 @@ li {
 }
 
 input:checked + .slider {
-  background-color: #2196F3;
+  background-color: #03bf03;
 }
 
 input:focus + .slider {

@@ -24,8 +24,11 @@ export default {
 </script>
 
 <style>
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800&family=Roboto:wght@100;300;500;700;900&display=swap');
+
   * {
-    font-family: 'Arial';
+    font-family: 'Roboto', sans-serif;
   }
 
   #app {
@@ -36,7 +39,7 @@ export default {
 
   #app > header {
     text-align: center;
-    background-color: #2196F3;
+    background-color: #80bdef;
     padding: 20px 0;
     margin-bottom: 40px;
     border-bottom: 2px solid black;

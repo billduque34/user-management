@@ -18,6 +18,8 @@
       <input type="search" placeholder="Search" v-model="search"/>
       <div>
         <div class="users">
+
+<!--          display the list of users which has click function-->
           <div v-for="user in users" v-bind:key="user.id" class="user-name">
             <p @click="userClick(user)">{{`${user.lastname}, ${user.firstname}`}}</p>
           </div>
@@ -36,23 +38,27 @@ export default {
   name: "Users",
   data() {
     return {
-      storeUsers: this.users,
-      tempUsers: [],
       filterRole: '',
       search: ''
     }
   },
   methods: {
     userClick(user) {
+      //the chosen user from users list will be stored to the state.selectedUser to fill the form
       this.$store.commit('setSelectedUser', user);
     },
     addUser() {
+      //a callback function will run which has a 'addUserClicked' event name from Form.vue
       bus.$emit('addUserClicked');
     }
   },
+
+  //rerenders when users' value changes
   computed: {
     ...mapState(['users'])
   },
+
+  //fetch the list of users from the user table when the component is mounted or search or filterRole's value changes
   apollo: {
     user: {
         query() {
@@ -82,9 +88,8 @@ export default {
           }
         },
         update(data) {
-          console.log('-----Refactor----');
+          //fetched data(list of users) will be stored in the state.users from store
           this.$store.commit('fetchUsers', data.user);
-          console.log(data.user);
         }
       }
   }
@@ -108,6 +113,17 @@ export default {
     border: 2px solid black;
     width: 80%;
     max-height: 740px;
+  }
+
+  .user-name-add > button {
+    margin-left: 10px;
+    padding: 10px 15px;
+    font-size: 15px;
+    border-radius: 7px;
+    font-weight: bold;
+    background-color: #019c01;
+    color: white;
+    border: 3px solid darkgreen;
   }
 
   .user-name-add, .role-list {

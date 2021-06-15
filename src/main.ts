@@ -14,11 +14,12 @@ const link = new HttpLink({
     'x-hasura-admin-secret': 'vqCPGz3kvKZrzscfNDa43qs4I5GlAyB7CVWgk5k7iZgUbH3yi36MHZlJXjAidF8T'
   }
 });
+// @ts-ignore
 const client = new ApolloClient({
   link: link,
-  fetchOptions: {
-    mode: 'no-cors',
-  },
+  // fetchOptions: {
+  //   mode: 'no-cors',
+  // },
   cache: new InMemoryCache({
     addTypename: true
   })

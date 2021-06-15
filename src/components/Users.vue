@@ -29,12 +29,14 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { Form } from '../types/types';
 import { bus } from '@/main';
 import { mapState } from 'vuex';
 import gql from 'graphql-tag'
+import Vue from 'vue';
 
-export default {
+export default Vue.extend({
   name: "Users",
   data() {
     return {
@@ -43,7 +45,7 @@ export default {
     }
   },
   methods: {
-    userClick(user) {
+    userClick(user: Form) {
       //the chosen user from users list will be stored to the state.selectedUser to fill the form
       this.$store.commit('setSelectedUser', user);
     },
@@ -93,7 +95,7 @@ export default {
         }
       }
   }
-}
+});
 </script>
 
 <style scoped>

@@ -10,17 +10,18 @@
   </div>
 </template>
 
-<script>
-import Form from "./components/Form";
-import Users from "./components/Users";
+<script lang="ts">
+import Vue from 'vue';
+import Form from "./components/Form.vue";
+import Users from "./components/Users.vue";
 
-export default {
+export default Vue.extend({
   name: 'App',
   components: {
     Form,
     Users
   }
-}
+});
 </script>
 
 <style>

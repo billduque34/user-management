@@ -1,4 +1,4 @@
-export function capitalize(prop) {
+export function capitalize(prop: String) {
     if(!prop) {
         return prop;
     }

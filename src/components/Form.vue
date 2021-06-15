@@ -1,7 +1,7 @@
 <template>
   <div class="Form">
     <div class="form-header">
-      <h2 v-if="!userForm.hasOwnProperty('id')">Add User</h2>
+      <h2 v-if="!userForm.id">Add User</h2>
       <h2 v-else>Edit User</h2>
       <div class="add-and-delete">
         <button @click="addUser(userForm)">Save</button>
@@ -9,7 +9,7 @@
       </div>
     </div>
     <div class="warnings">
-      <p v-if="userForm.hasOwnProperty('id') && !userForm.active" class="warning">The user is inactive!</p>
+      <p v-if="userForm.id !== 0 && !userForm.active" class="warning">The user is inactive!</p>
       <p v-if="invalidEmail" class="warning">Invalid Email!</p>
       <p v-if="hasEmptyField" class="warning">Fill all the fields except the Middle Name field(optional)</p>
       <p v-if="isEmailExist" class="warning">Email already exist!</p>
@@ -65,12 +65,14 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import Vue from 'vue';
 import { bus } from '../main';
 import gql from "graphql-tag";
 import { capitalize } from '../utils/utils';
+import { Form, Role } from '../types/types';
 
-const userForm = {
+const userForm: Form = {
   lastname: '',
   firstname: '',
   middlename: '',
@@ -78,10 +80,11 @@ const userForm = {
   birthdate: '',
   email: '',
   user_roles: [],
-  active: false
+  active: false,
+  id: 0
 };
 
-export default {
+export default Vue.extend({
   name: "Form",
   data() {
     return {
@@ -105,19 +108,19 @@ export default {
 
   //rerenders when users and roles change value
   computed: {
-    users() {
+    users(): Form {
       return this.$store.state.users;
     },
-    roles() {
+    roles(): Array<Role> {
       return this.userForm.user_roles;
     }
   },
   methods: {
-    removeRole({target}) {
+    removeRole({target}: any) {
       const index = this.userForm.user_roles.findIndex(ele => ele.role.name === target.innerHTML);
       this.userForm.user_roles.splice(index, 1);
     },
-    selectMultipleRole({target}) {
+    selectMultipleRole({target}: any) {
       const role = target.value;
       //checks if a chosen role exist in the user's array of roles
       const isRoleExist = this.userForm.user_roles.find(ele => ele.role.name === role);
@@ -144,12 +147,12 @@ export default {
 
       this.userForm.user_roles.push(roleObj);
     },
-    addUser(user) {
+    addUser(user: Form) {
       this.isEmailExist = false;
       this.invalidEmail = false;
       this.hasEmptyField = false;
       //if the id exist, it will instead update the user information
-      if ('id' in user) {
+      if (user.id !== 0) {
         this.updateUserData(user);
         return;
       }
@@ -162,6 +165,10 @@ export default {
         //it makes the middlename optional
         if(prop === 'middlename') {
           user[prop] = capitalize(user[prop]);
+          continue;
+        }
+
+        if(prop === 'id') {
           continue;
         }
 
@@ -196,6 +203,7 @@ export default {
       }
 
       //add the newly created user info to the db
+      console.log('Let\'s add');
       this.addUserToDB(user);
       this.resetForm();
       this.isEmailExist = false;
@@ -203,17 +211,18 @@ export default {
       this.hasEmptyField = false;
     },
 
-    deleteUser(user) {
+    deleteUser(user: Form) {
       this.deleteUserFromDB(user);
       this.resetForm();
     },
     resetForm() {
-      const form = document.querySelector('form');
+      const form: any = document.querySelector('form');
       form.reset();
       userForm.user_roles = [];
       this.userForm = {...userForm};
     },
-    async addUserToDB(user) {
+    async addUserToDB(user: Form): Promise<void> {
+      console.log('Adding to the db...');
       //add the user info to the user table and returns an ID
       const userId = await this.$apollo.mutate({
         mutation: gql`mutation addUser($email: String!,
@@ -249,8 +258,8 @@ export default {
         }
       });
       //if an id exists, it will add all the roles to the user_role table
-      if (userId) {
-        await Promise.all(user.user_roles.map(role => {
+      if (userId && user.user_roles.length !== 0) {
+        await user.user_roles.forEach((role: Role) => {
           this.$apollo.mutate({
             mutation: gql`mutation addRole ($role_id: Int!,
                                    $user_id: Int!) {
@@ -266,14 +275,14 @@ export default {
               user_id: userId.data.insert_user.returning[0].id
             }
           });
-        }));
+        });
 
         //adds a property 'id' to the user passed in the parameter
         user.id = userId.data.insert_user.returning[0].id;
         this.$store.commit('addUser', user);
       }
     },
-    async updateUserData(user) {
+    async updateUserData(user: Form) {
       await this.$apollo.mutate({
         mutation: gql`mutation updateUser ($email: String!,
                                            $firstname: String!,
@@ -418,7 +427,7 @@ export default {
       this.resetForm();
     });
   }
-}
+});
 </script>
 
 <style scoped>

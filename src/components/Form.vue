@@ -1,67 +1,75 @@
 h<template>
-  <div class="Form">
-    <div class="form-header">
-      <h2 v-if="!userForm.id">Add User</h2>
-      <h2 v-else>Edit User</h2>
-      <div class="add-and-delete">
-        <button @click="addUser(userForm)">Save</button>
-        <button @click="deleteUser(userForm)">Delete</button>
-      </div>
-    </div>
-    <div class="warnings">
-      <p v-if="userForm.id !== 0 && !userForm.active" class="warning">The user is inactive!</p>
-      <p v-if="invalidEmail" class="warning">Invalid Email!</p>
-      <p v-if="hasEmptyField" class="warning">Fill all the fields except the Middle Name field(optional)</p>
-      <p v-if="isEmailExist" class="warning">Email already exist!</p>
-    </div>
-    <form>
-      <section>
-        <label for="last-name">Last Name</label>
-        <input type="text" id="last-name" v-model="userForm.lastname"/>
-      </section>
-      <section>
-        <label for="first-name">First Name</label>
-        <input type="text" id="first-name" v-model="userForm.firstname"/>
-      </section>
-      <section>
-        <label for="middle-name">Middle Name</label>
-        <input type="text" id="middle-name" v-model="userForm.middlename"/>
-      </section>
-      <section>
-        <label for="nickname">Nickname</label>
-        <input type="text" id="nickname" v-model="userForm.nickname"/>
-      </section>
-      <section>
-        <label for="birthday">Birthday</label>
-        <input type="date" id="birthday" v-model="userForm.birthdate"/>
-      </section>
-      <section>
-        <label for="e-mail">Email</label>
-        <input type="email" id="e-mail" v-model="userForm.email"/>
-      </section>
-      <section section="roles">
-        <label for="role">Role</label>
-        <div>
-          <select name="role" id="role" @change="selectMultipleRole">
-            <option value="Participant">Participant</option>
-            <option value="Student">Student</option>
-            <option value="Administrator">Administrator</option>
-            <option value="Teacher">Teacher</option>
-          </select>
-          <ul>
-<!--            List of Roles of the created user or the selected user-->
-            <li v-for="oneRole in roles" v-bind:key="oneRole.role.id" @click="removeRole">{{ oneRole.role.name }}</li>
-          </ul>
+  <div class="FormComp">
+    <p v-if="userDontExist" class="does-not-exist">User does not exist!</p>
+    <div class="Form" v-else>
+      <div class="form-header">
+        <h2 v-if="!userForm.id">Add User</h2>
+        <h2 v-else>Edit User</h2>
+        <div class="add-and-delete">
+          <button @click="addUser(userForm)">Save</button>
+          <router-link to="/">
+            <button @click="deleteUser(userForm)" v-if="userForm.id">Delete</button>
+          </router-link>
         </div>
-      </section>
-      <section>
-        <p>Active</p>
-        <label class="switch">
-          <input type="checkbox" v-model="userForm.active" />
-          <span class="slider"></span>
-        </label>
-      </section>
-    </form>
+      </div>
+      <div class="warnings">
+        <p v-if="userForm.id !== 0 && !userForm.active" class="warning">The user is inactive!</p>
+        <p v-if="isDeleted" class="deleted warning">The user is deleted! This application will refresh.</p>
+        <p v-if="isSuccessful" class="success warning">Success!</p>
+        <p v-if="invalidEmail" class="warning">Invalid Email!</p>
+        <p v-if="hasEmptyField" class="warning">Fill all the fields with red asterisk!</p>
+        <p v-if="isEmailExist" class="warning">Email already exist!</p>
+      </div>
+      <form>
+        <section>
+          <label for="last-name">Last Name<span>*</span></label>
+          <input type="text" id="last-name" v-model="userForm.lastname"/>
+        </section>
+        <section>
+          <label for="first-name">First Name<span>*</span></label>
+          <input type="text" id="first-name" v-model="userForm.firstname"/>
+        </section>
+        <section>
+          <label for="middle-name">Middle Name</label>
+          <input type="text" id="middle-name" v-model="userForm.middlename"/>
+        </section>
+        <section>
+          <label for="nickname">Nickname<span>*</span></label>
+          <input type="text" id="nickname" v-model="userForm.nickname"/>
+        </section>
+        <section>
+          <label for="birthday">Birthday<span>*</span></label>
+          <input type="date" id="birthday" v-model="userForm.birthdate"/>
+        </section>
+        <section>
+          <label for="e-mail">Email<span>*</span></label>
+          <input type="email" id="e-mail" v-model="userForm.email"/>
+        </section>
+        <section section="roles">
+          <label for="role">Role<span>*</span></label>
+          <div>
+            <select name="role" id="role" @change="selectMultipleRole">
+              <option value="" id="blank"></option>
+              <option value="Participant">Participant</option>
+              <option value="Student">Student</option>
+              <option value="Administrator">Administrator</option>
+              <option value="Teacher">Teacher</option>
+            </select>
+            <ul>
+              <!--            List of Roles of the created user or the selected user-->
+              <li v-for="oneRole in roles" v-bind:key="oneRole.role.id" @click="removeRole">{{ oneRole.role.name }}</li>
+            </ul>
+          </div>
+        </section>
+        <section>
+          <p>Active<span>*</span></p>
+          <label class="switch">
+            <input type="checkbox" v-model="userForm.active" />
+            <span class="slider"></span>
+          </label>
+        </section>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -91,7 +99,11 @@ export default Vue.extend({
       userForm: {...userForm},
       isEmailExist: false,
       invalidEmail: false,
-      hasEmptyField: false
+      hasEmptyField: false,
+      isRouteIdNotFound: false,
+      isSuccessful: false,
+      isDeleted: false,
+      userDontExist: false
     }
   },
 
@@ -122,6 +134,7 @@ export default Vue.extend({
     },
     selectMultipleRole({target}: any): void {
       const role: string = target.value;
+
       //checks if a chosen role exist in the user's array of roles
       const isRoleExist: number = this.userForm.user_roles.find(ele => ele.role.name === role);
       let roleObj: Role;
@@ -141,25 +154,40 @@ export default Vue.extend({
         case 'Student':
           roleObj = {role: {name: role, id: 3}};
           break;
-        default:
+        case 'Administrator':
           roleObj = {role: {name: role, id: 4}};
+          break;
       }
 
       this.userForm.user_roles.push(roleObj);
     },
     addUser(user: Form): void {
-      this.isEmailExist = false;
-      this.invalidEmail = false;
-      this.hasEmptyField = false;
+      this.clearWarnings();
+
+      const isUserValid = this.userValidator(user);
+
       //if the id exist, it will instead update the user information
       if (user.id !== 0) {
-        this.updateUserData(user);
+        if(isUserValid) {
+          this.updateUserData(user);
+        }
         return;
       }
 
-      const users = this.$store.state.users;
+      if(!isUserValid) {
+        return;
+      }
 
-      //checks if all the property(except middlename) is truthy
+      //add the newly created user info to the db
+      this.addUserToDB(user);
+      this.resetForm();
+      this.isEmailExist = false;
+      this.invalidEmail = false;
+      this.hasEmptyField = false;
+    },
+
+    //checks if the form is valid to be updated or added
+    userValidator(user: Form): boolean {
       for (let prop in user) {
         const regex = new RegExp(/.*@.*\..*(\..*)?/);
         //it makes the middlename optional
@@ -175,14 +203,14 @@ export default Vue.extend({
         //checks if value of every property are not an empty string
         if (user[prop] === "") {
           this.hasEmptyField = true;
-          return;
+          return false;
         }
 
         //checks if email has the right format
         if(prop === 'email') {
           if(!regex.test(user[prop])) {
             this.invalidEmail = true;
-            return;
+            return false;
           }
         }
 
@@ -196,24 +224,17 @@ export default Vue.extend({
       }
 
       //checks if there is a duplicate email
-      const isDuplicateEmail = users.find(userElement => userElement.email === user.email);
+      const users = this.$store.state.users;
+      const isDuplicateEmail = users.find(userElement => userElement.email === user.email && userElement.id !== user.id);
       if (isDuplicateEmail) {
         this.isEmailExist = true;
-        return;
+        return false;
       }
 
-      //add the newly created user info to the db
-      console.log('Let\'s add');
-      this.addUserToDB(user);
-      this.resetForm();
-      this.isEmailExist = false;
-      this.invalidEmail = false;
-      this.hasEmptyField = false;
+      return true;
     },
-
     deleteUser(user: Form): void {
       this.deleteUserFromDB(user);
-      this.resetForm();
     },
     resetForm(): void {
       const form: any = document.querySelector('form');
@@ -278,8 +299,10 @@ export default Vue.extend({
         });
 
         //adds a property 'id' to the user passed in the parameter
+        console.log('Adding...');
         user.id = userId.data.insert_user.returning[0].id;
         this.$store.commit('addUser', user);
+        this.isSuccessful = true;
       }
     },
     async updateUserData(user: Form): Promise<void> {
@@ -318,6 +341,7 @@ export default Vue.extend({
       await this.addRole(user);
       await this.deleteRole(user);
       this.$store.commit('updateUser', user);
+      this.isSuccessful = true;
     },
     async addRole(user): Promise<void> {
       const prevRole = this.$store.state.selectedUser.user_roles;
@@ -419,19 +443,60 @@ export default Vue.extend({
         }
       });
       this.$store.commit('deleteUser', user.id);
+      this.isDeleted = true;
+      this.resetForm();
+      // await setTimeout(() => window.location.reload(), 3000);
+    },
+    //set all the variables except userForm from data to false
+    clearWarnings(): void {
+      this.isEmailExist = false;
+      this.invalidEmail = false;
+      this.hasEmptyField = false;
+      this.isSuccessful = false;
+      this.isDeleted = false;
+      this.userDontExist = false;
     }
   },
   created() {
     //linked to the addUser() event handler from User.vue
     bus.$on('addUserClicked', (): void => {
+      this.clearWarnings();
       this.resetForm();
+      this.$store.commit('setSelectedUser', {...this.userForm});
+    });
+
+    bus.$on('selectedUserClicked', (): void => {
+      this.clearWarnings();
+    });
+
+    bus.$on('userDoesNotExist', (): void => {
+      this.userDontExist = true;
     });
   }
 });
 </script>
 
 <style scoped>
+.FormComp {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.does-not-exist {
+  background-color: red;
+  border: 5px solid #760000;
+  text-align: center;
+  width: 80%;
+  margin: auto;
+  padding: 40px 0;
+  font-weight: bolder;
+  font-size: 50px;
+}
+
 .Form {
+  height: 97%;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -449,12 +514,13 @@ export default Vue.extend({
   padding: 20px 0;
 }
 
-.add-and-delete > button {
+.add-and-delete button {
   margin-left: 10px;
   padding: 10px 15px;
   font-size: 15px;
   border-radius: 7px;
   font-weight: bold;
+  cursor: pointer;
 }
 
 .add-and-delete button:first-child {
@@ -476,6 +542,11 @@ form {
 
 }
 
+section span {
+  color: red;
+  margin-left: 5px;
+}
+
 section {
   display: grid;
   grid-template-columns: 180px 1fr;
@@ -493,6 +564,16 @@ section > input {
   font-size: 20px;
   border: 10px solid #e2e23e;
   box-sizing: border-box;
+}
+
+.success {
+  background-color: #04d904;
+  border: 10px solid #008212;
+}
+
+.deleted {
+  background-color: #fc3232;
+  border: 10px solid #820000;
 }
 
 ul {

@@ -2,7 +2,9 @@
   <div class="Users">
     <div class="user-name-add">
       <p>Users</p>
-      <button @click="addUser">Add</button>
+      <router-link to="/">
+        <button @click="addUser">Add</button>
+      </router-link>
     </div>
     <div class="user-list">
       <div class="role-list">
@@ -21,7 +23,9 @@
 
 <!--          display the list of users which has click function-->
           <div v-for="user in users" v-bind:key="user.id" class="user-name">
-            <p @click="userClick(user)">{{`${user.lastname}, ${user.firstname}`}}</p>
+            <router-link v-bind:to="`/users/${user.id}`">
+              <p @click="userClick(user)">{{`${user.lastname}, ${user.firstname}`}}</p>
+            </router-link>
           </div>
         </div>
       </div>
@@ -41,13 +45,15 @@ export default Vue.extend({
   data() {
     return {
       filterRole: '',
-      search: ''
+      search: '',
+      id: this.$route.params.id
     }
   },
   methods: {
     userClick(user: Form): void {
       //the chosen user from users list will be stored to the state.selectedUser to fill the form
       this.$store.commit('setSelectedUser', user);
+      bus.$emit('selectedUserClicked');
     },
     addUser(): void {
       //a callback function will run which has a 'addUserClicked' event name from Form.vue
@@ -90,10 +96,47 @@ export default Vue.extend({
           }
         },
         update(data) {
+          console.log('fetching...');
           //fetched data(list of users) will be stored in the state.users from store
           this.$store.commit('fetchUsers', data.user);
         }
+    },
+    select_user: {
+      query() {
+        return gql`query getUser ($id: Int!){
+                 user(where: {id: {_eq: $id}}) {
+                  lastname
+                  firstname
+                  middlename
+                  birthdate
+                  nickname
+                  email
+                  active
+                  id
+                  user_roles {
+                    role {
+                      id
+                      name
+                    }
+                  }
+          }
+        }`
+      },
+      variables() {
+        return {
+          id: this.id
+        }
+      },
+      update(data) {
+        //if no data found, it will stop the update function
+        if(!data.user.length) {
+          bus.$emit('userDoesNotExist');
+          return;
+        }
+
+        this.$store.commit('setSelectedUser', data.user[0]);
       }
+    }
   }
 });
 </script>
@@ -117,7 +160,7 @@ export default Vue.extend({
     max-height: 740px;
   }
 
-  .user-name-add > button {
+  .user-name-add > a> button {
     margin-left: 10px;
     padding: 10px 15px;
     font-size: 15px;
@@ -126,6 +169,7 @@ export default Vue.extend({
     background-color: #019c01;
     color: white;
     border: 3px solid darkgreen;
+    cursor: pointer;
   }
 
   .user-name-add, .role-list {
@@ -157,7 +201,7 @@ export default Vue.extend({
     align-items: center;
   }
 
-  .user-name-add > button {
+  .user-name-add > a > button {
     padding: 10px 30px;
     font-size: 15px;
   }
@@ -183,5 +227,10 @@ export default Vue.extend({
     padding: 10px 0;
     border-bottom: 1px solid black;
     background-color: #f8e5a9;
+  }
+
+  .user-name a {
+    text-decoration: none;
+    color: black;
   }
 </style>

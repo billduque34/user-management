@@ -29,7 +29,7 @@ export const store = new Vuex.Store({
         },
         updateUser(state: State, user: Form): void {
             const indexUser: number = state.users.findIndex(userElement => userElement.id === user.id);
-            state.users[indexUser] = user;
+            state.users[indexUser] = {...user};
             state.users = [...state.users];
         },
         filteringRole(state: State, payload: any): void {

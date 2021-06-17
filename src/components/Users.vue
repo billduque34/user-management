@@ -172,10 +172,10 @@ export default Vue.extend({
     }
   },
   created() {
-    bus.$on('removeAndSaveButtonClicked', () => {
-      this.pageNumber = 1
+    bus.$on('updateClicked', () => {
       this.triggerFilter();
     });
+
   }
 });
 </script>

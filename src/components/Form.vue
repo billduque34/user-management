@@ -301,7 +301,7 @@ export default Vue.extend({
         //adds a property 'id' to the user passed in the parameter
         user.id = userId.data.insert_user.returning[0].id;
         this.$store.commit('addUser', user);
-        bus.$emit('removeAndSaveButtonClicked');
+        bus.$emit('updateClicked');
         this.isSuccessful = true;
       }
     },
@@ -341,7 +341,7 @@ export default Vue.extend({
       await this.addRole(user);
       await this.deleteRole(user);
       this.$store.commit('updateUser', user);
-      bus.$emit('removeAndSaveButtonClicked');
+      bus.$emit('updateClicked');
       this.isSuccessful = true;
     },
     async addRole(user): Promise<void> {
@@ -446,7 +446,7 @@ export default Vue.extend({
       this.$store.commit('deleteUser', user.id);
       this.isDeleted = true;
       this.resetForm();
-      bus.$emit('removeAndSaveButtonClicked');
+      bus.$emit('updateClicked');
     },
 
     //set all the variables except userForm from data to false

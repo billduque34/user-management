@@ -13,12 +13,12 @@ h<template>
         </div>
       </div>
       <div class="warnings">
-        <p v-if="userForm.id !== 0 && !userForm.active" class="warning">The user is inactive!</p>
-        <p v-if="isDeleted" class="deleted warning">The user is deleted! This application will refresh.</p>
+        <p v-if="isDeleted" class="deleted warning">The user is deleted!</p>
         <p v-if="isSuccessful" class="success warning">Success!</p>
         <p v-if="invalidEmail" class="warning">Invalid Email!</p>
         <p v-if="hasEmptyField" class="warning">Fill all the fields with red asterisk!</p>
         <p v-if="isEmailExist" class="warning">Email already exist!</p>
+        <p v-if="userForm.id !== 0 && !userForm.active" class="warning">The user is inactive!</p>
       </div>
       <form>
         <section>
@@ -299,9 +299,9 @@ export default Vue.extend({
         });
 
         //adds a property 'id' to the user passed in the parameter
-        console.log('Adding...');
         user.id = userId.data.insert_user.returning[0].id;
         this.$store.commit('addUser', user);
+        bus.$emit('removeAndSaveButtonClicked');
         this.isSuccessful = true;
       }
     },
@@ -341,6 +341,7 @@ export default Vue.extend({
       await this.addRole(user);
       await this.deleteRole(user);
       this.$store.commit('updateUser', user);
+      bus.$emit('removeAndSaveButtonClicked');
       this.isSuccessful = true;
     },
     async addRole(user): Promise<void> {
@@ -445,8 +446,9 @@ export default Vue.extend({
       this.$store.commit('deleteUser', user.id);
       this.isDeleted = true;
       this.resetForm();
-      // await setTimeout(() => window.location.reload(), 3000);
+      bus.$emit('removeAndSaveButtonClicked');
     },
+
     //set all the variables except userForm from data to false
     clearWarnings(): void {
       this.isEmailExist = false;
@@ -558,22 +560,28 @@ section > input {
   height: 25px;
 }
 
+section > div > select {
+  cursor: pointer;
+}
+
 .warning {
+  text-align: center;
   background-color: #f8e7b3;
   padding: 20px 50px;
   font-size: 20px;
-  border: 10px solid #e2e23e;
+  border: 5px solid #e2e23e;
   box-sizing: border-box;
+  border-radius: 12px;
 }
 
 .success {
   background-color: #04d904;
-  border: 10px solid #008212;
+  border: 5px solid #008212;
 }
 
 .deleted {
   background-color: #fc3232;
-  border: 10px solid #820000;
+  border: 5px solid #820000;
 }
 
 ul {
@@ -599,7 +607,7 @@ li {
 .switch {
   position: relative;
   display: inline-block;
-  width: 60px;
+  width: 65px;
   height: 34px;
 }
 

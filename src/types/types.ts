@@ -1,4 +1,6 @@
 export interface State {
+    filterUsersByRole: Array<Form>,
+    paginatedUsers: Array<Form>,
     selectedUser: Form | {},
     users: Array<Form>
 }

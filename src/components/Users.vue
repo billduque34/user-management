@@ -9,7 +9,7 @@
     <div class="user-list">
       <div class="role-list">
         <label for="filter-role">Role</label>
-        <select id="filter-role" v-model="filterRole">
+        <select id="filter-role" v-model="selectRole">
           <option value="">All</option>
           <option  value="Student">Student</option>
           <option value="Teacher">Teacher</option>
@@ -22,13 +22,18 @@
         <div class="users">
 
 <!--          display the list of users which has click function-->
-          <div v-for="user in users" v-bind:key="user.id" class="user-name">
+          <div v-for="user in paginatedUsers" v-bind:key="user.id" class="user-name">
             <router-link v-bind:to="`/users/${user.id}`">
               <p @click="userClick(user)">{{`${user.lastname}, ${user.firstname}`}}</p>
             </router-link>
           </div>
         </div>
       </div>
+    </div>
+    <div class="pagination">
+      <button @click="pageNumberIncAndDec">Previous Page</button>
+      <p>{{ pageNumber }}</p>
+      <button @click="pageNumberIncAndDec">Next Page</button>
     </div>
   </div>
 </template>
@@ -44,12 +49,24 @@ export default Vue.extend({
   name: "Users",
   data() {
     return {
-      filterRole: '',
+      selectRole: '',
       search: '',
-      id: this.$route.params.id
+      id: this.$route.params.id,
+      pageNumber: 1
     }
   },
   methods: {
+    pageNumberIncAndDec({ target }: any) {
+      if(target.innerHTML === 'Previous Page' && this.pageNumber > 1) {
+        this.pageNumber--;
+      }
+
+      const numberOfPages = Math.floor((this.$store.state.filterUsersByRole.length-  1)/ 10);
+      console.log(numberOfPages);
+      if(target.innerHTML === 'Next Page' && numberOfPages >= this.pageNumber) {
+        this.pageNumber++;
+      }
+    },
     userClick(user: Form): void {
       //the chosen user from users list will be stored to the state.selectedUser to fill the form
       this.$store.commit('setSelectedUser', user);
@@ -58,20 +75,43 @@ export default Vue.extend({
     addUser(): void {
       //a callback function will run which has a 'addUserClicked' event name from Form.vue
       bus.$emit('addUserClicked');
+    },
+    triggerFilter() {
+      this.$store.commit({
+        type: 'filteringRole',
+        selectRole: this.selectRole,
+        search: this.search,
+        pageNumber: this.pageNumber
+      });
     }
   },
 
-  //rerenders when users' value changes
+  //rerenders when paginatedUsers' value changes
   computed: {
-    ...mapState(['users'])
+    ...mapState(['paginatedUsers'])
   },
 
-  //fetch the list of users from the user table when the component is mounted or search or filterRole's value changes
+  //if there are changes to search, selectRole or pageNumber's value, this functions will 'react'
+  watch: {
+    search() {
+      this.pageNumber = 1;
+      this.triggerFilter();
+    },
+    selectRole() {
+      this.pageNumber = 1;
+      this.triggerFilter();
+    },
+    pageNumber() {
+      this.triggerFilter();
+    }
+  },
+
+  //fetch the list of users from the user table when the component is mounted
   apollo: {
     user: {
         query() {
-          return gql`query filterList ($search: String!, $role: String!){
-                 user(where: {user_roles: {role: {name: {_iregex: $role}}}, _or: [{firstname: {_iregex: $search}},{lastname: {_iregex: $search}}]}) {
+          return gql`query getUsers {
+                 user {
                   lastname
                   firstname
                   middlename
@@ -89,22 +129,17 @@ export default Vue.extend({
           }
         }`
         },
-        variables() {
-          return {
-            search: this.search,
-            role: this.filterRole
-          }
-        },
         update(data) {
-          console.log('fetching...');
           //fetched data(list of users) will be stored in the state.users from store
           this.$store.commit('fetchUsers', data.user);
         }
     },
-    select_user: {
+
+    //fetch user data when this.id has a numeric value
+    fetch_user: {
       query() {
-        return gql`query getUser ($id: Int!){
-                 user(where: {id: {_eq: $id}}) {
+        return gql`query getUser($id: Int!) {
+                 user(where: { id: { _eq: $id }}) {
                   lastname
                   firstname
                   middlename
@@ -128,15 +163,19 @@ export default Vue.extend({
         }
       },
       update(data) {
-        //if no data found, it will stop the update function
         if(!data.user.length) {
           bus.$emit('userDoesNotExist');
           return;
         }
-
         this.$store.commit('setSelectedUser', data.user[0]);
       }
     }
+  },
+  created() {
+    bus.$on('removeAndSaveButtonClicked', () => {
+      this.pageNumber = 1
+      this.triggerFilter();
+    });
   }
 });
 </script>
@@ -157,7 +196,7 @@ export default Vue.extend({
     border-radius: 10px;
     border: 2px solid black;
     width: 80%;
-    max-height: 740px;
+    max-height: 820px;
   }
 
   .user-name-add > a> button {
@@ -194,6 +233,7 @@ export default Vue.extend({
   .role-list > select {
     width: 90%;
     height: 40px;
+    cursor: pointer;
   }
 
   .user-name-add {
@@ -232,5 +272,27 @@ export default Vue.extend({
   .user-name a {
     text-decoration: none;
     color: black;
+  }
+
+  .pagination {
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pagination > p {
+    padding: 0 30px;
+    font-size: 20px;
+    font-weight: bold;
+  }
+
+  .pagination > button {
+    padding: 7px 15px;
+    background-color: #1686dc;
+    border: 3px solid #3f3fe3;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
   }
 </style>

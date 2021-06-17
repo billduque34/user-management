@@ -4,11 +4,12 @@ h<template>
       <h2 v-if="!userForm.id">Add User</h2>
       <h2 v-else>Edit User</h2>
       <div class="add-and-delete">
-        <button @click="addUser(userForm)">Save</button>
-        <button @click="deleteUser(userForm)">Delete</button>
+        <button @click="addUser(userForm)" id="save-button">Save</button>
+        <button v-if="userForm.id" @click="deleteUser(userForm)" id="delete-button">Delete</button>
       </div>
     </div>
     <div class="warnings">
+      <p v-if="userRemoved" class="warning">The user is removed to the list!</p>
       <p v-if="userForm.id !== 0 && !userForm.active" class="warning">The user is inactive!</p>
       <p v-if="invalidEmail" class="warning">Invalid Email!</p>
       <p v-if="hasEmptyField" class="warning">Fill all the fields except the Middle Name field(optional)</p>
@@ -91,7 +92,8 @@ export default Vue.extend({
       userForm: {...userForm},
       isEmailExist: false,
       invalidEmail: false,
-      hasEmptyField: false
+      hasEmptyField: false,
+      userRemoved: false
     }
   },
 
@@ -148,9 +150,7 @@ export default Vue.extend({
       this.userForm.user_roles.push(roleObj);
     },
     addUser(user: Form): void {
-      this.isEmailExist = false;
-      this.invalidEmail = false;
-      this.hasEmptyField = false;
+      this.clearWarnings();
       //if the id exist, it will instead update the user information
       if (user.id !== 0) {
         this.updateUserData(user);
@@ -220,6 +220,7 @@ export default Vue.extend({
       form.reset();
       userForm.user_roles = [];
       this.userForm = {...userForm};
+      this.$store.commit('setSelectedUser', {...userForm});
     },
     async addUserToDB(user: Form): Promise<void> {
       console.log('Adding to the db...');
@@ -419,11 +420,20 @@ export default Vue.extend({
         }
       });
       this.$store.commit('deleteUser', user.id);
+      this.userRemoved = true;
+      bus.$emit('RemoveAndAddButtonClicked');
+    },
+    clearWarnings() {
+      this.isEmailExist = false;
+      this.invalidEmail = false;
+      this.hasEmptyField = false;
+      this.userRemoved = false;
     }
   },
   created() {
     //linked to the addUser() event handler from User.vue
     bus.$on('addUserClicked', (): void => {
+      this.clearWarnings();
       this.resetForm();
     });
   }
@@ -457,13 +467,13 @@ export default Vue.extend({
   font-weight: bold;
 }
 
-.add-and-delete button:first-child {
+#save-button {
   background-color: #019c01;
   color: white;
   border: 3px solid darkgreen;
 }
 
-.add-and-delete button:last-child {
+#delete-button {
   background-color: #bf0000;
   color: white;
   border: 3px solid #4e0101;

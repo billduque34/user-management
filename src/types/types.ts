@@ -1,21 +1,23 @@
 export interface State {
     selectedUser: Form | {},
+    filterUsersByRole: Array<Form>,
+    filterUsersWithSearch: Array<Form>,
     users: Array<Form>
 }
 
 export interface Role {
     role: {
-        name: String,
-        id: Number
+        name: string,
+        id: number
     }
 }
 
 export interface Form {
-    lastname: String,
-    firstname: String,
+    lastname: string,
+    firstname: string,
     middlename: String,
-    nickname: String,
-    birthdate: String,
+    nickname: string,
+    birthdate: string,
     email: string,
     user_roles: Array<Role> | [],
     active: boolean,

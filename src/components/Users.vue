@@ -7,7 +7,7 @@
     <div class="user-list">
       <div class="role-list">
         <label for="filter-role">Role</label>
-        <select id="filter-role" v-model="filterRole">
+        <select id="filter-role" v-model="selectRole">
           <option value="">All</option>
           <option  value="Student">Student</option>
           <option value="Teacher">Teacher</option>
@@ -20,7 +20,7 @@
         <div class="users">
 
 <!--          display the list of users which has click function-->
-          <div v-for="user in users" v-bind:key="user.id" class="user-name">
+          <div v-for="user in filterUsersByRole" v-bind:key="user.id" class="user-name">
             <p @click="userClick(user)">{{`${user.lastname}, ${user.firstname}`}}</p>
           </div>
         </div>
@@ -40,7 +40,7 @@ export default Vue.extend({
   name: "Users",
   data() {
     return {
-      filterRole: '',
+      selectRole: '',
       search: ''
     }
   },
@@ -52,20 +52,35 @@ export default Vue.extend({
     addUser(): void {
       //a callback function will run which has a 'addUserClicked' event name from Form.vue
       bus.$emit('addUserClicked');
-    }
+    },
   },
-
   //rerenders when users' value changes
   computed: {
-    ...mapState(['users'])
-  },
+    ...mapState(['filterUsersByRole']),
 
+  },
+  watch: {
+    search() {
+      this.$store.commit({
+        type: 'filteringRole',
+        selectRole: this.selectRole,
+        search: this.search
+      });
+    },
+    selectRole() {
+      this.$store.commit({
+        type: 'filteringRole',
+        selectRole: this.selectRole,
+        search: this.search
+      });
+    }
+  },
   //fetch the list of users from the user table when the component is mounted or search or filterRole's value changes
   apollo: {
     user: {
         query() {
-          return gql`query filterList ($search: String!, $role: String!){
-                 user(where: {user_roles: {role: {name: {_iregex: $role}}}, _or: [{firstname: {_iregex: $search}},{lastname: {_iregex: $search}}]}) {
+          return gql`query getUsers {
+                 user {
                   lastname
                   firstname
                   middlename
@@ -83,17 +98,20 @@ export default Vue.extend({
           }
         }`
         },
-        variables() {
-          return {
-            search: this.search,
-            role: this.filterRole
-          }
-        },
         update(data) {
           //fetched data(list of users) will be stored in the state.users from store
           this.$store.commit('fetchUsers', data.user);
         }
       }
+  },
+  created() {
+    bus.$on('removeAndSaveButtonClicked', () => {
+      this.$store.commit({
+        type: 'filteringRole',
+        selectRole: this.selectRole,
+        search: this.search
+      });
+    });
   }
 });
 </script>
